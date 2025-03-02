@@ -5544,6 +5544,51 @@ create_limit_path(PlannerInfo *root, RelOptInfo *rel,
 
 	/*
 	 * Greenplum specific behavior:
+	 * If the LimitPath has a General locus and the subplan contains a volatile function,
+	 * then Motion can be added on top of the Limit at a later stage of processing. In this
+	 * case, if Limit is parameterized, it produces incorrect output because the limit
+	 * parameters do not pass through Motion. To prevent this, we calculate the data set to
+	 * be processed in the limit on one segment and send it to the remaining ones. To do this,
+	 * we set the underlying Limit node to locus SingleQE, and set the Limit node to OuterQuery
+	 * (since it contains parameters) and add Motion between them.
+	 * If LimitPath has an OuterQuery, we also add Motion so that the data set for Limit
+	 * processing on all segments is identical.
+	*/
+	if ((contains_outer_params(limitCount, root) || contains_outer_params(limitOffset, root)) &&
+		(CdbPathLocus_IsGeneral(subpath->locus) || CdbPathLocus_IsOuterQuery(subpath->locus)) &&
+			(contain_volatile_functions((Node *) root->parse->havingQual) ||
+			 contain_volatile_functions((Node *) root->parse->jointree->quals) ||
+			 contain_volatile_functions((Node *) subpath->pathtarget->exprs)))
+	{
+		CdbMotionPath *motion_path;
+		CdbPathLocus_MakeSingleQE(&(subpath->locus), getgpsegmentCount());
+
+		CdbPathLocus outerquery_locus;
+		CdbPathLocus_MakeOuterQuery(&outerquery_locus);
+		motion_path = makeNode(CdbMotionPath);
+		motion_path->path.pathtype = T_Motion;
+		motion_path->path.parent = subpath->parent;
+		motion_path->path.pathtarget = subpath->pathtarget;
+		motion_path->path.locus = outerquery_locus;
+		motion_path->path.rows = subpath->rows;
+		motion_path->path.parallel_aware = false;
+		motion_path->path.parallel_safe = subpath->parallel_safe;
+		motion_path->path.parallel_workers = subpath->parallel_workers;
+		motion_path->path.pathkeys = NIL;
+		motion_path->subpath = subpath;
+		/* Costs, etc, are same as subpath. */
+		motion_path->path.startup_cost = subpath->total_cost;
+		motion_path->path.total_cost = subpath->total_cost;
+		motion_path->path.memory = subpath->memory;
+		motion_path->path.motionHazard = subpath->motionHazard;
+		/* Motion nodes are never rescannable. */
+		motion_path->path.rescannable = false;
+
+		pathnode->subpath = (Path *) create_material_path(root, subpath->parent, &motion_path->path);
+		CdbPathLocus_MakeOuterQuery(&pathnode->path.locus);
+	}
+	/*
+	 * Greenplum specific behavior:
 	 * If the limit path's locus is general or segmentgeneral
 	 * we have to make it singleQE.
 	 */

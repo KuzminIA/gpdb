@@ -393,3 +393,45 @@ select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
  45020 | 45020
 (3 rows)
 
+-- Check the operation of the parameterized Limit in a subquery with a volatile function
+-- start_ignore
+-- end_ignore
+set optimizer = 0;
+create table limit_tbl(i int) distributed by (i);
+insert into limit_tbl select * from generate_series(1, 3) i;
+explain (verbose, costs off)
+select (select a + random()*0 from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl order by r;
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: ((SubPlan 1))
+   Merge Key: ((SubPlan 1))
+   ->  Sort
+         Output: ((SubPlan 1))
+         Sort Key: ((SubPlan 1))
+         ->  Seq Scan on public.limit_tbl
+               Output: (SubPlan 1)
+               SubPlan 1
+                 ->  Limit
+                       Output: (((a.a)::double precision + (random() * '0'::double precision)))
+                       ->  Materialize
+                             Output: (((a.a)::double precision + (random() * '0'::double precision)))
+                             ->  Broadcast Motion 1:3  (slice2; segments: 1)
+                                   Output: (((a.a)::double precision + (random() * '0'::double precision)))
+                                   ->  Function Scan on pg_catalog.generate_series a
+                                         Output: ((a.a)::double precision + (random() * '0'::double precision))
+                                         Function Call: generate_series(1, 4)
+ Optimizer: Postgres-based planner
+ Settings: optimizer = 'off'
+(20 rows)
+
+select (select a + random()*0 from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl order by r;
+ r 
+---
+ 2
+ 3
+ 4
+(3 rows)
+
+drop table limit_tbl;
+reset optimizer;
