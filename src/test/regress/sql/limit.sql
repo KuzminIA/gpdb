@@ -152,7 +152,6 @@ select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
 -- start_ignore
 drop table if exists limit_tbl;
 -- end_ignore
-set optimizer = 0;
 create table limit_tbl(i int) distributed by (i);
 insert into limit_tbl select * from generate_series(1, 3) i;
 
@@ -161,4 +160,3 @@ select (select a + random()*0 from generate_series(1, 4) a limit 1 offset limit_
 select (select a + random()*0 from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl order by r;
 
 drop table limit_tbl;
-reset optimizer;

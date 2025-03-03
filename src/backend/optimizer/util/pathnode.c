@@ -5559,13 +5559,10 @@ create_limit_path(PlannerInfo *root, RelOptInfo *rel,
 		CdbMotionPath *motion_path;
 		CdbPathLocus_MakeSingleQE(&(subpath->locus), getgpsegmentCount());
 
-		CdbPathLocus outerquery_locus;
-		CdbPathLocus_MakeOuterQuery(&outerquery_locus);
 		motion_path = makeNode(CdbMotionPath);
 		motion_path->path.pathtype = T_Motion;
 		motion_path->path.parent = subpath->parent;
 		motion_path->path.pathtarget = subpath->pathtarget;
-		motion_path->path.locus = outerquery_locus;
 		motion_path->path.rows = subpath->rows;
 		motion_path->path.parallel_aware = false;
 		motion_path->path.parallel_safe = subpath->parallel_safe;
@@ -5579,6 +5576,7 @@ create_limit_path(PlannerInfo *root, RelOptInfo *rel,
 		motion_path->path.motionHazard = subpath->motionHazard;
 		/* Motion nodes are never rescannable. */
 		motion_path->path.rescannable = false;
+		CdbPathLocus_MakeOuterQuery(&motion_path->path.locus);
 
 		pathnode->subpath = (Path *) create_material_path(root, subpath->parent, &motion_path->path);
 		CdbPathLocus_MakeOuterQuery(&pathnode->path.locus);
