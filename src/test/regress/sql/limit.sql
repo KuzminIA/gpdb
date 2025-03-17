@@ -158,8 +158,8 @@ insert into limit_tbl select * from generate_series(1, 3) i;
 create function f(i int) returns int language plpgsql as $$ begin return i; end; $$;
 
 explain (verbose, costs off)
-select (select f(a) from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl order by r;
-select (select f(a) from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl order by r;
+select (select f(a) from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl;
+select (select f(a) from generate_series(1, 4) a limit 1 offset limit_tbl.i) as r from limit_tbl;
 
 drop function f(int);
 drop table limit_tbl;

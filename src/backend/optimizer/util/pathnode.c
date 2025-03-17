@@ -5552,9 +5552,7 @@ create_limit_path(PlannerInfo *root, RelOptInfo *rel,
 	*/
 	if ((contains_outer_params(limitCount, root) || contains_outer_params(limitOffset, root)) &&
 		(CdbPathLocus_IsGeneral(subpath->locus) || CdbPathLocus_IsOuterQuery(subpath->locus)) &&
-			(contain_volatile_functions((Node *) root->parse->havingQual) ||
-			 contain_volatile_functions((Node *) root->parse->jointree->quals) ||
-			 contain_volatile_functions((Node *) subpath->pathtarget->exprs)))
+			contain_volatile_functions((Node *) root->parse))
 	{
 		CdbMotionPath *motion_path;
 		CdbPathLocus_MakeSingleQE(&(subpath->locus), getgpsegmentCount());
