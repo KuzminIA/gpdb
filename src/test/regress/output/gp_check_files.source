@@ -43,13 +43,21 @@ $$ LANGUAGE plpgsql;
 -- we'll use a specific tablespace to test
 CREATE TABLESPACE checkfile_ts LOCATION '@testtablespace@';
 set default_tablespace = checkfile_ts;
+--
+-- Tests for orphaned files
+--
+-- check behavior when the tablespace directory isn't created yet.
+set client_min_messages = ERROR;
+select gp_segment_id, filename from run_orphaned_files_view();
+ gp_segment_id | filename 
+---------------+----------
+(0 rows)
+
+reset client_min_messages;
 -- create a table that we'll delete the files to test missing files.
 -- this have to be created beforehand in order for the tablespace directories to be created.
 CREATE TABLE checkmissing_heap(a int, b int, c int);
 insert into checkmissing_heap select i,i,i from generate_series(1,100)i;
---
--- Tests for orphaned files
---
 -- go to seg1's data directory for the tablespace we just created
 \cd @testtablespace@
 select dbid from gp_segment_configuration where content = 1 and role = 'p' \gset
