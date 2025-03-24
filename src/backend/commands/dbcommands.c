@@ -1014,28 +1014,6 @@ dropdb(const char *dbname, bool missing_ok)
 								  nsubscriptions, nsubscriptions)));
 
 	/*
-	 * Free the database on the segDBs
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		StringInfoData buffer;
-
-		initStringInfo(&buffer);
-
-		appendStringInfo(&buffer, "DROP DATABASE IF EXISTS %s", quote_identifier(dbname));
-
-		/*
-		 * Do the DROP DATABASE as part of a distributed transaction.
-		 */
-		CdbDispatchCommand(buffer.data,
-							DF_CANCEL_ON_ERROR|
-							DF_NEED_TWO_PHASE|
-							DF_WITH_SNAPSHOT,
-							NULL);
-		pfree(buffer.data);
-	}
-
-	/*
 	 * Delete any comments or security labels associated with the database.
 	 */
 	DeleteSharedComments(db_id, DatabaseRelationId);
@@ -1081,6 +1059,28 @@ dropdb(const char *dbname, bool missing_ok)
 	datform->datconnlimit = DATCONNLIMIT_INVALID_DB;
 	heap_inplace_update(pgdbrel, tup);
 	XLogFlush(XactLastRecEnd);
+
+	/*
+	 * Free the database on the segDBs
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		StringInfoData buffer;
+
+		initStringInfo(&buffer);
+
+		appendStringInfo(&buffer, "DROP DATABASE IF EXISTS %s", quote_identifier(dbname));
+
+		/*
+		 * Do the DROP DATABASE as part of a distributed transaction.
+		 */
+		CdbDispatchCommand(buffer.data,
+							DF_CANCEL_ON_ERROR|
+							DF_NEED_TWO_PHASE|
+							DF_WITH_SNAPSHOT,
+							NULL);
+		pfree(buffer.data);
+	}
 
 	/*
 	 * Also delete the tuple - transactionally. If this transaction commits,
@@ -1131,6 +1131,9 @@ dropdb(const char *dbname, bool missing_ok)
 	 * cause rmdir() to fail.
 	 */
 	RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+
+
+	SIMPLE_FAULT_INJECTOR("dropdb_before_remove_tablespace");
 
 	/*
 	 * Remove all tablespace subdirs belonging to the database.
