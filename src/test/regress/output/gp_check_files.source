@@ -40,12 +40,12 @@ BEGIN
     RAISE EXCEPTION 'failed to retrieve orphaned files after 10 minutes of retries.';
 END;
 $$ LANGUAGE plpgsql;
--- we'll use a specific tablespace to test
-CREATE TABLESPACE checkfile_ts LOCATION '@testtablespace@';
-set default_tablespace = checkfile_ts;
 --
 -- Tests for orphaned files
 --
+-- we'll use a specific tablespace to test
+CREATE TABLESPACE checkfile_ts LOCATION '@testtablespace@';
+set default_tablespace = checkfile_ts;
 -- check behavior when the tablespace directory isn't created yet.
 set client_min_messages = ERROR;
 select gp_segment_id, filename from run_orphaned_files_view();
