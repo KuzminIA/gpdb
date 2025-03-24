@@ -4,7 +4,7 @@
 !\retcode gpstop -au;
 
 -- start_ignore
-DROP TABLE IF EXISTS store_session_id
+DROP TABLE IF EXISTS store_session_id;
 -- end_ignore
 CREATE TABLE store_session_id(a int, sess_id int);
 -- adding `2` as first column as the distribution column and add this tuple to segment 0
