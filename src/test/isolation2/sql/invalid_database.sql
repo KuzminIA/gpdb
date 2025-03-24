@@ -3,11 +3,14 @@
 !\retcode gpconfig -c autovacuum -v off;
 !\retcode gpstop -au;
 
-CREATE DATABASE regression_invalid_interrupt;
+-- start_ignore
+DROP TABLE IF EXISTS store_session_id
+-- end_ignore
 CREATE TABLE store_session_id(a int, sess_id int);
-
 -- adding `2` as first column as the distribution column and add this tuple to segment 0
 1: INSERT INTO store_session_id SELECT 2, sess_id FROM pg_stat_activity WHERE pid = pg_backend_pid();
+
+CREATE DATABASE regression_invalid_interrupt;
 
 -- prevent drop database via suspend in inject fault on segment 0
 SELECT gp_inject_fault('dropdb_before_remove_tablespace', 'suspend', dbid)
