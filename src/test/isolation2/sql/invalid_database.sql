@@ -5,6 +5,7 @@
 
 -- start_ignore
 DROP TABLE IF EXISTS store_session_id;
+DROP DATABASE IF EXISTS regression_invalid_interrupt;
 -- end_ignore
 CREATE TABLE store_session_id(a int, sess_id int);
 -- adding `2` as first column as the distribution column and add this tuple to segment 0
