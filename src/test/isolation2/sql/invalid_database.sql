@@ -4,13 +4,8 @@
 !\retcode gpstop -au;
 
 -- start_ignore
-DROP TABLE IF EXISTS store_session_id;
 DROP DATABASE IF EXISTS regression_invalid_interrupt;
 -- end_ignore
-CREATE TABLE store_session_id(a int, sess_id int);
--- adding `2` as first column as the distribution column and add this tuple to segment 0
-1: INSERT INTO store_session_id SELECT 2, sess_id FROM pg_stat_activity WHERE pid = pg_backend_pid();
-
 CREATE DATABASE regression_invalid_interrupt;
 
 -- prevent drop database via suspend in inject fault on segment 0
@@ -25,7 +20,7 @@ SELECT gp_wait_until_triggered_fault('dropdb_before_remove_tablespace', 1, dbid)
 FROM gp_segment_configuration WHERE content = 0 AND role = 'p';
 
 -- and finally interrupt the DROP DATABASE on segment 0
-0U: SELECT pg_cancel_backend(pid) FROM pg_stat_activity JOIN store_session_id USING (sess_id)
+0U: SELECT pg_cancel_backend(pid) FROM pg_stat_activity
 WHERE query = 'DROP DATABASE IF EXISTS regression_invalid_interrupt';
 0Uq:
 
