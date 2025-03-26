@@ -101,15 +101,15 @@ select get_tablespace_version_directory_name() as version_dir \gset
 select oid from pg_database where datname = current_database() \gset
 \cd :oid
 -- create some orphaned files
-\! touch 987654
-\! touch 987654.3
+\! touch 4000000000
+\! touch 4000000000.3
 -- check orphaned files, note that this forces a checkpoint internally.
 set client_min_messages = ERROR;
 select gp_segment_id, filename from run_orphaned_files_view();
- gp_segment_id | filename 
----------------+----------
-             1 | 987654.3
-             1 | 987654
+ gp_segment_id |   filename   
+---------------+--------------
+             1 | 4000000000.3
+             1 | 4000000000
 (2 rows)
 
 reset client_min_messages;
@@ -120,10 +120,10 @@ ERROR:  could not rename XXX
 CONTEXT:  PL/pgSQL function gp_move_orphaned_files(text) line 21 at RETURN QUERY
 PL/pgSQL function run_gp_move_orphaned_files(text) line 7 at RETURN QUERY
 select gp_segment_id, filename from run_orphaned_files_view();
- gp_segment_id | filename 
----------------+----------
-             1 | 987654.3
-             1 | 987654
+ gp_segment_id |   filename   
+---------------+--------------
+             1 | 4000000000.3
+             1 | 4000000000
 (2 rows)
 
 -- should also fail to move if no proper permission to the target directory
@@ -134,10 +134,10 @@ ERROR:  cannot rename XXX
 CONTEXT:  PL/pgSQL function gp_move_orphaned_files(text) line 21 at RETURN QUERY
 PL/pgSQL function run_gp_move_orphaned_files(text) line 7 at RETURN QUERY
 select gp_segment_id, filename from run_orphaned_files_view();
- gp_segment_id | filename 
----------------+----------
-             1 | 987654.3
-             1 | 987654
+ gp_segment_id |   filename   
+---------------+--------------
+             1 | 4000000000.3
+             1 | 4000000000
 (2 rows)
 
 -- should not allow non-superuser to run,
@@ -159,8 +159,8 @@ drop role check_file_test_role;
 select gp_segment_id, move_success, regexp_replace(oldpath, '^.*/(.+)$', '\1') as oldpath, regexp_replace(newpath, '^.*/(.+)$', '\1') as newpath
 from run_gp_move_orphaned_files('@testtablespace@/moving_orphaned_file_test');
 gp_segment_id|move_success|oldpath|newpath
-1|t|987654|seg1_pg_tblspc_17816_GPDB_6_302307241_17470_987654
-1|t|987654.3|seg1_pg_tblspc_17816_GPDB_6_302307241_17470_987654.3
+1|t|4000000000|seg1_pg_tblspc_17816_GPDB_6_302307241_17470_987654
+1|t|4000000000.3|seg1_pg_tblspc_17816_GPDB_6_302307241_17470_987654.3
 (2 rows)
 \a
 -- The moved orphaned files are in the target directory tree with a name that indicates its original location in data directory
